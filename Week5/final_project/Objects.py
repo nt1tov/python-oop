@@ -14,9 +14,15 @@ def create_sprite(img, sprite_size):
 class Interactive(ABC):
 
     @abstractmethod
-    def interact(self, engine, hero):
+    def interact(self, engine):
         pass
 
+class AbstractObject(ABC):
+    def __init_(self):
+        pass
+    
+    def draw(self, display):
+        pass
 
 class Ally(AbstractObject, Interactive):
 
@@ -25,8 +31,8 @@ class Ally(AbstractObject, Interactive):
         self.action = action
         self.position = position
 
-    def interact(self, engine, hero):
-        self.action(engine, hero)
+    def interact(self, engine):
+        self.action(engine)
 
 
 class Creature(AbstractObject):
@@ -40,6 +46,12 @@ class Creature(AbstractObject):
 
     def calc_max_HP(self):
         self.max_hp = 5 + self.stats["endurance"] * 2
+
+  
+
+    def draw(self,  surf):
+        self.sprite_size = surf.game_engine.sprite_size
+        surf.blit(self.sprite, (self.position[0] * self.sprite_size, self.position[1]*self.sprite_size))
 
 
 class Hero(Creature):
@@ -59,6 +71,48 @@ class Hero(Creature):
             self.stats["endurance"] += 2
             self.calc_max_HP()
             self.hp = self.max_hp
+    
+    def draw(self,  surf, pos):
+        self.sprite_size = surf.game_engine.sprite_size
+        surf.blit(self.sprite, (pos[0] * self.sprite_size, pos[1]*self.sprite_size))
+
+    def calc_damage(self):
+        return (self.stats["strength"]  + self.stats["intelligence"]//2 + self.stats["luck"]//4) * self.level
+
+
+class Enemy(Creature, Interactive):
+
+    def __init__(self, icon, stats, xp, position):
+        super().__init__(icon, stats, position)
+        self.hp = xp
+        self.level =  stats['experience'] // 100
+        self.exp = stats['experience']
+        self.gold = stats['experience'] // 10
+
+    # FIXME
+    #@abstractmethod
+    def interact(self, engine):
+        self.hp = max(0, self.hp - engine.hero.calc_damage())
+        engine.hero.hp =  max(0,  engine.hero.hp - self.calc_damage())
+        if engine.hero.hp > 0:
+            engine.hero.exp += self.exp
+
+    def calc_damage(self):
+        return self.stats["strength"]  + self.stats["intelligence"]//2 + self.stats["luck"]//4
+
+        
+
+# class Rat(Enemy):
+#     pass
+
+# class Knight(Enemy):
+#     pass
+
+# class Naga(Enemy):
+#     pass
+
+# class Dragon(Enemy):
+#     pass
 
 
 class Effect(Hero):
@@ -124,6 +178,26 @@ class Effect(Hero):
     def apply_effect(self):
         pass
 
+class Berserk(Effect):
+    def apply_effect(self):
+        self.stats['strength'] += 7
+        self.stats['endurance'] += 7
+        self.stats['luck'] += 7
+        self.stats['intelligence'] -= 3
+
+
+class Blessing(Effect):
+    def apply_effect(self):
+        self.stats['strength'] += 2
+        self.stats['endurance'] += 2
+        self.stats['luck'] += 2
+        self.stats['intelligence'] += 2
+
+
+class Weakness(Effect):
+    def apply_effect(self):
+        self.stats['strength'] -= 4
+        self.stats['endurance'] -= 4
 
 # FIXME
 # add classes
